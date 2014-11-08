@@ -1,0 +1,8 @@
+// Manifest format: https://github.com/rogerwang/node-webkit/wiki/Manifest-format
+{
+	"name": "Show Tracker",
+	"main": "../src/index.html",
+	"window": {
+		"toolbar": true
+	}
+}
