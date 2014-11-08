@@ -1,0 +1,21 @@
+.calendar {
+	margin: 1em auto;
+}
+#footer {
+	height: 50px;
+	position: fixed;
+	bottom: 0px;
+	left: 0px;
+	line-height: 50px;
+	text-align: center;
+	width: 100%;
+	background-color: #333;
+	color: #fff;
+}
+#footer a {
+	color: inherit;
+	text-decoration: underline;
+}
+#footer a:hover {
+	color: #A4C9E8;
+}
