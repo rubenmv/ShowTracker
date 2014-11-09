@@ -1,31 +1,38 @@
-var currentDateTime, // Today
-	currentMonth = 1; // Month showing in calendar
-
+/*global console*/
+var $ = window.$,
+	currentSection; // Active section of the page
+var API_KEY = "01C061EC44C068BD"; // API key from TVDB
 /**
  * Show class
- * @param {[type]} title     [description]
- * @param {[type]} unwatched [description]
+ * @param {[string]} title     [title of the show]
+ * @param {[number]} unwatched [Unwatched episodes count]
  */
-function Show (title, unwatched) {
+function Show(title, unwatched) {
+	'use strict';
 	this.title = title;
 	this.unwatched = unwatched;
-};
-/**
- * Initialize application
- */
-function init() {
-	currentDateTime = new Date();
 }
-
+/**
+ * Retrieve show info and show it
+ * @param  {[Object]} event [Event triggered]
+ */
+function displayShowInfo(event) {
+	event.preventDefault();
+	// Fill show info
+	$('#showInfo h2')[0].textContent = event.target.textContent;
+	// Show info section
+	goToSection('showInfo');
+}
 /**
  * Retrieve user data from file
  */
 function getUserData() {
+	'use strict';
 	$.ajax({
-		type: "POST",
-		url: "user-data.json",
+		type: 'POST',
+		url: 'user-data.json',
 		async: true,
-		dataType: "json",
+		dataType: 'json',
 		// Success
 		success: function(data) {
 			var showArray = [],
@@ -33,13 +40,12 @@ function getUserData() {
 				showsCount = 0, // Total of shows in collection
 				episodeCount = 0, // Total of show episodes
 				watchedCount = 0; // Watched episodes per show
-
-			var showListInfo = document.getElementById("showListInfo");
+			var showListInfo = $('#showListInfo');
 			// For every show, save name and watched episodes
 			for (var i = 0; i < data.length; i++) {
 				if (data[i].show === currentShow) {
 					// Check episode watched
-					if (data[i].watched === "true") {
+					if (data[i].watched === 'true') {
 						watchedCount++;
 					}
 					episodeCount++;
@@ -47,15 +53,16 @@ function getUserData() {
 					var row = document.createElement('tr'),
 						cell = document.createElement('td'),
 						link = document.createElement('a');
-
-					cell.textContent = currentShow;
+					// First col
+					link.textContent = currentShow;
+					$(link).click(displayShowInfo);
+					cell.appendChild(link);
 					row.appendChild(cell);
+					// Second col
 					cell = document.createElement('td');
-					cell.textContent = "Watched " + watchedCount + " out of " + episodeCount + " episodes.";
+					cell.textContent = 'Watched ' + watchedCount + ' out of ' + episodeCount + ' episodes.';
 					row.appendChild(cell);
-
-					showListInfo.appendChild(row);
-
+					showListInfo.append(row);
 					// New show found, add current and reset count
 					showArray.push(new Show(currentShow, watchedCount));
 					watchedCount = 0;
@@ -67,14 +74,49 @@ function getUserData() {
 		},
 		// Error
 		error: function(xhr, status, error) {
-			console.error("There was a problem retrieving user data:\n" + xhr.responseText);
+			console.error('There was a problem retrieving user data:\n' + xhr.responseText);
 		}
+	});
+}
+/**
+ * Hides current section and shows called section
+ * @param {[string]} section [Name of the section]
+ */
+function goToSection(section) {
+	'use strict';
+	// Update main menu state
+	$('#menu--main__' + currentSection).removeClass('active');
+	$('#menu--main__' + section).addClass('active');
+	// Hide current section and show new section
+	$('#' + currentSection).fadeOut('fast', function() {
+		$('#' + section).fadeIn('fast');
+		// Make new section the current one
+		currentSection = section;
 	});
 }
 /**
  * Wait for DOM elements to be loaded and ready
  */
 $(document).ready(function(argument) {
-	init();
+	'use strict';
+	currentSection = 'calendar';
+	// Hide all sections
+	$('.article--main').hide();
+	// Event listeners, use wrapper functions to pass arguments
+	$('#menu--main__calendar').click(function(e) {
+		e.preventDefault();
+		goToSection('calendar');
+	});
+	$('#menu--main__unwatched').click(function(e) {
+		e.preventDefault();
+		goToSection('unwatched');
+	});
+	$('#menu--main__shows').click(function(e) {
+		e.preventDefault();
+		goToSection('myshows');
+	});
+	// Retrieve local stored data
 	getUserData();
+	// Show main section, calendar
+	goToSection('calendar');
 });
