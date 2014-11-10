@@ -1,3 +1,4 @@
+/*global window*/
 /**
  * Episode class
  * Contains all info about an episode, even if it's been watched
@@ -7,6 +8,7 @@
 	// Constructor
 	function Episode() {
 		// Public
+		this.id = null;
 		this.season = null;	// Number of the season
 		this.number = null;	// Number of the episode in the season
 		this.name = null;		// Name of the episode (string)

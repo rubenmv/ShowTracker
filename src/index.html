@@ -129,20 +129,45 @@
 			<!-- SHOW INFO PAGE -->
 			<!-- ============== -->
 			<article id="showInfo" class="article--main row">
-			<h2 id="showInfoName"></h2>
-			<p>
-			Overview: <label id="showInfoOverview"></label><br>
-			First Aired: <label id="showInfoFirstAired"></label><br>
-			Network: <label id="showInfoNetWork"></label>
-			</p>
-			<span id="showInfo__button--add" class="button">Add to collection</span>
-			<span id="showInfo__button--remove" class="button alert">Remove from collection</span>
-			
-			<div id="showInfo_seasons"></div>
-			<dl id="showInfo_seasons_tabs" class="tabs" data-tab>
-			</dl>
-			<div id="showInfo_seasons_eps" class="tabs-content">
-			</div>
+			<!-- INFORMATION -->
+			<section>
+				<h2 id="showInfoName">...</h2>
+				<p>
+				Overview: <span id="showInfoOverview"></span>
+				<br>Seasons: <span id="showInfoSeasons"></span>
+				<br>Episodes: <span id="showInfoEpisodes"></span>
+				<br>First Aired: <span id="showInfoFirstAired"></span>
+				<br>Network: <span id="showInfoNetWork"></span>
+				<br>Runtime (minutes): <span id="showInfoRuntime"></span>
+				<br>Status: <span id="showInfoStatus"></span>
+				<br><span id="showInfoAirDayTime"></span>
+				<br><span id="showInfoIMDB"></span>
+				<br><span id="showInfoTVDB"></span>
+				</p>
+			</section>
+			<!-- COLLECTION OPTIONS -->
+			<section>
+				<span id="showInfo__button--add" class="button">Add to collection</span>
+				<span id="showInfo__button--remove" class="button alert">Remove from collection</span>
+				<section class="showInfo__userControls">
+					<span id="showInfo__button--markAll" class="button">Mark entire show</span>
+					<span id="showInfo__button--unmarkAll" class="button alert">Unmark entire show</span><br>
+				</section>
+			</section>
+			<!-- SEASONS AND EPISODES -->
+			<section>
+				<!-- Tabs -->
+				<div id="showInfo_seasons"></div>
+				<dl id="showInfo_seasons_tabs" class="tabs" data-tab>
+				</dl>
+				<!-- Controls -->
+				<section class="showInfo__userControls">
+					<span id="showInfo__button--markSeason" class="button">Mark entire season</span>
+					<span id="showInfo__button--unmarkSeason" class="button alert">Unmark entire season</span><br>
+				</section>
+				<div id="showInfo_seasons_eps" class="tabs-content">
+				</div>
+			</section>
 			</article>
 		</div>
 		<!-- ************************************************************** -->

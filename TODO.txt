@@ -1,5 +1,3 @@
-API Key: 01C061EC44C068BD
-
 http://www.thetvdb.com/
 http://thetvdb.com/wiki/index.php?title=Programmers_API
 
@@ -10,33 +8,16 @@ calendar
 	- Episodios de mis shows en los días del calendario
 	- Checkbox para marcar episodios como vistos (se actualiza json)
 
-unwatched
-	- Lista de shows como myshows.html pero solo de los unwatched
-	- Al hacer clic 
-
 myshows
-	- Icono o alguna otra cosa marcando si faltan episodios por ver, los vistos completos en un color distinto menos vistoso.
+	- Checkbox para esconder los watched
 
 paginadeshow
+	- Marcar las temporadas (los tabs) que tiene episodios por ver
+	- Marcar los episodios por ver con otro color
 	- Información sobre el show:
 		- Banner o imagen
-		- Enlaces a IMDB y TVDB
-		- Score de IMDB (o de TVDB si la API lo tiene)
-		- Si el show ya ha terminado o no
-		- Numero de episodios
-		- Dia y hora
-		- Dia de premiere, dia de finale (last episode)
-	- Boton para agregar/quitar a myshows
-	- Seccion de temporadas, por pestañas
-		- Marcar/Desmarcar show entero
-		- Marcar/Desmarcar temporada mostrada actual
-		- Tambien mostrar pestaña para Extras
-		- Mostrar lista de episodios por cada temporadas o extras:
-			- Numero del episodio
-			- Nombre del episodio
-			- Fecha de emision
-			- Checkbox de visto
 
 BUGS Y MEJORAS
 - Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos, intentar arreglar esto.
+- Cuando se muestran todos los shows se puede indicar los que tienen episodios por ver con algun icono o color diferente.
 		
