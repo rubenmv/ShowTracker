@@ -3,12 +3,7 @@ API Key: 01C061EC44C068BD
 http://www.thetvdb.com/
 http://thetvdb.com/wiki/index.php?title=Programmers_API
 
-- Recoger datos y pintar en calendario
-- Buscar show
-- Agregar show
-- Eliminar show
-
-calendar/index.html
+calendar
 	- Mostrar un calendario del mes actual
 	- Paginacion para cambiar de mes
 	- Incluir dias de meses anteriores y posteriores hasta rellenar huecos
@@ -19,9 +14,7 @@ unwatched
 	- Lista de shows como myshows.html pero solo de los unwatched
 	- Al hacer clic 
 
-myshows.html
-	- Numero de shows a los que estas suscrito
-	- Enlaces a la pagina de cada show
+myshows
 	- Icono o alguna otra cosa marcando si faltan episodios por ver, los vistos completos en un color distinto menos vistoso.
 
 paginadeshow
@@ -31,9 +24,8 @@ paginadeshow
 		- Score de IMDB (o de TVDB si la API lo tiene)
 		- Si el show ya ha terminado o no
 		- Numero de episodios
-		- Canal
 		- Dia y hora
-		- Dia de premiere, dia de finale
+		- Dia de premiere, dia de finale (last episode)
 	- Boton para agregar/quitar a myshows
 	- Seccion de temporadas, por pestañas
 		- Marcar/Desmarcar show entero
@@ -44,4 +36,7 @@ paginadeshow
 			- Nombre del episodio
 			- Fecha de emision
 			- Checkbox de visto
+
+BUGS Y MEJORAS
+- Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos, intentar arreglar esto.
 		

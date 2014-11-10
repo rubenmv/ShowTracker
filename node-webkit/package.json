@@ -3,6 +3,8 @@
 	"name": "Show Tracker",
 	"main": "../src/index.html",
 	"window": {
-		"toolbar": true
+		"toolbar": true,
+		"width": 1024,
+		"height": 768
 	}
 }
