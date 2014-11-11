@@ -11,7 +11,7 @@
 	<body>
 		<!-- ************************************************************** -->
 		<!-- TOP NAVIGATION -->
-		<nav class="top-bar" data-topbar role="navigation">
+		<nav class="top-bar" data-topbar data-role="navigation">
 			<ul class="title-area">
 				<li class="name">
 					<h1><a href="#">Show Tracker</a></h1>
@@ -24,8 +24,6 @@
 				<!-- Left Nav Section -->
 				<ul class="left">
 					<li id="menu--main__calendar" class="active"><a href="#">Calendar</a>
-					</li>
-					<li id="menu--main__unwatched"><a href="#">Unwatched</a>
 					</li>
 					<li id="menu--main__myshows"><a href="#">My shows</a>
 					</li>
@@ -92,6 +90,7 @@
 			<!-- ======== -->
 			<article id="myshows" class="article--main row">
 			<h2>Show collection</h2>
+			<input type="checkbox" id="myshows__checkboxWatched"><label for="myshows__checkboxWatched">Hide watched</label>
 			<!-- Shows -->
 			<table id="showList" class="small-12 column">
 				<thead>
@@ -156,6 +155,7 @@
 			</section>
 			<!-- SEASONS AND EPISODES -->
 			<section>
+				<input type="checkbox" id="showInfo__checkboxWatched"><label for="showInfo__checkboxWatched">Hide watched</label>
 				<!-- Tabs -->
 				<div id="showInfo_seasons"></div>
 				<dl id="showInfo_seasons_tabs" class="tabs" data-tab>

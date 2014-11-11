@@ -8,9 +8,6 @@ calendar
 	- Episodios de mis shows en los días del calendario
 	- Checkbox para marcar episodios como vistos (se actualiza json)
 
-myshows
-	- Checkbox para esconder los watched
-
 paginadeshow
 	- Marcar las temporadas (los tabs) que tiene episodios por ver
 	- Marcar los episodios por ver con otro color
