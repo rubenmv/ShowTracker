@@ -1,20 +1,21 @@
 http://www.thetvdb.com/
 http://thetvdb.com/wiki/index.php?title=Programmers_API
 
+- Actualizar la información (mirando con la API) de los shows agregados al inicial el programa. Lo que se podría hacer mejor es simplemente guardar IDs y watched y luego recogerlo todo cada vez desde servidor, asi si cambian las overviews o cualquier otra cosa se cambia automaticamente.
+
 calendar
-	- Mostrar un calendario del mes actual
 	- Paginacion para cambiar de mes
 	- Incluir dias de meses anteriores y posteriores hasta rellenar huecos
-	- Episodios de mis shows en los días del calendario
-	- Checkbox para marcar episodios como vistos (se actualiza json)
 
 paginadeshow
 	- Marcar las temporadas (los tabs) que tiene episodios por ver
 	- Marcar los episodios por ver con otro color
-	- Información sobre el show:
-		- Banner o imagen
 
 BUGS Y MEJORAS
 - Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos, intentar arreglar esto.
 - Cuando se muestran todos los shows se puede indicar los que tienen episodios por ver con algun icono o color diferente.
-		
+- No dejar marcar los episodios que aun no han sido emitidos.
+- Ocultar episodios que aparecen medio vacios o incorrectos.
+- Ocultar episodios que no son episodios como el de "Sons of anarchy on Conan", etc.
+- Mejorar aspecto general
+- Usar AngularJS o algun otro framework para rellenar las tablas automaticamente
