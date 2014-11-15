@@ -23,3 +23,42 @@
 #footer a:hover {
 	color: #A4C9E8;
 }
+table {
+	border: none;
+}
+table th {
+	background-color: #333;
+	text-align: center !important;
+	color: #fff !important;
+
+}
+table td, table label {
+	font-size: 0.8em !important;
+}
+
+#calendar__table td {
+	padding: 0 !important;
+	margin: 0 !important;
+	max-width: 100px;
+	max-height: 100px;
+	vertical-align: top;
+}
+.calendar__cell__header {
+	background-color: #eee;
+	display: block;
+	text-align: center;
+	font-weight: 700;
+	font-size: 0.8em;
+}
+
+.showInfo__season--tab {
+	font-weight: 700;
+	padding: 0.5em !important;
+}
+
+.calendar__episode {
+	font-size: 1.0em !important;
+	background-color: #eee;
+	border: 1px solid #aaa;
+	margin: 0.5em 0.5em;
+}

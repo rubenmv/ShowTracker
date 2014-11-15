@@ -3,11 +3,12 @@ var $ = window.$,
 	currentSection = "calendar", // Active section of the page
 	currentShow = null, // Show displaying information, easier for adding to collection
 	showsArray = [], // All user shows with some info like watched episodes
-	fs = require('fs'); // File System API
-/**
- * TVDB
- */
-var serverTime; // Time in TVDB server in last check
+	fs = require("fs"), // File System API
+	currentDate = new Date(Date.now()),
+	calendarDate = currentDate, // we only care about month and year
+	serverTime,
+	MIRROR_MAIN = "http://thetvdb.com/",
+	MIRROR_BANNERS = MIRROR_MAIN + "banners/";
 /**
  * Gets server time
  */
@@ -15,13 +16,13 @@ function retrieveServerTime() {
 	"use strict";
 	$.ajax({
 		type: "POST",
-		url: "http://thetvdb.com/api/Updates.php?type=none",
+		url: MIRROR_MAIN + "api/Updates.php?type=none",
 		async: true,
 		dataType: "xml",
 		// Success
 		success: function(data) {
 			// Parse XML just in case there is any error
-			serverTime = $(data).find("Time").text();
+			serverTime = new Date($(data).find("Time").text());
 		},
 		// Error
 		error: function(xhr, status, error) {
@@ -51,6 +52,7 @@ function onEpisodeWatchedClick(event) {
 			currentShow.episodes[i].watched = !currentShow.episodes[i].watched;
 			currentShow.watchedEpisodes = countWatchedEpisodes(currentShow);
 			saveData();
+			fillAllShows();
 			return;
 		}
 	}
@@ -76,8 +78,8 @@ function displayShowInfo(showId, onlyPending) {
 	"use strict";
 	$.ajax({
 		type: "POST",
-		/*url: "http://thetvdb.com/api/GetSeries.php?seriesname=" + showId,*/
-		url: "http://thetvdb.com/data/series/" + showId + "/all/",
+		/*url: MIRROR_MAIN + "api/GetSeries.php?seriesname=" + showId,*/
+		url: MIRROR_MAIN + "data/series/" + showId + "/all/",
 		async: true,
 		dataType: "xml",
 		// Success
@@ -99,18 +101,20 @@ function displayShowInfo(showId, onlyPending) {
 				currentShow.overview = $(seriesInfo).find("Overview").text();
 				currentShow.firstAired = $(seriesInfo).find("FirstAired").text();
 				currentShow.network = $(seriesInfo).find("Network").text();
+				currentShow.banner = MIRROR_BANNERS + $(seriesInfo).find("banner").text();
 			}
 			// Set page info
 			$("#showInfoName")[0].textContent = currentShow.name;
 			$("#showInfoOverview")[0].textContent = currentShow.overview;
 			$("#showInfoFirstAired")[0].textContent = currentShow.firstAired;
 			$("#showInfoNetWork")[0].textContent = currentShow.network;
+			$("#showInfoBanner")[0].src = currentShow.banner;
 			// Other info we don't need to save
 			$("#showInfoRuntime")[0].textContent = $(seriesInfo).find("Runtime").text();
 			$("#showInfoStatus")[0].textContent = $(seriesInfo).find("Status").text();
 			$("#showInfoAirDayTime")[0].textContent = $(seriesInfo).find("Airs_DayOfWeek").text() + " at " + $(seriesInfo).find("Airs_Time").text();
 			$("#showInfoIMDB").html("<a href='http://www.imdb.com/title/" + $(seriesInfo).find("IMDB_ID").text() + "'>" + currentShow.name + " on IMDB</a>");
-			$("#showInfoTVDB").html("<a href='http://thetvdb.com/?tab=series&id=" + showId + "'>" + currentShow.name + " on TVDB</a>");
+			$("#showInfoTVDB").html("<a href=\"" + MIRROR_MAIN + "?tab=series&id=" + showId + "\">" + currentShow.name + " on TVDB</a>");
 			// SEASONS AND EPISODES
 			// Cleanup
 			$("#showInfo_seasons_tabs").html("");
@@ -132,7 +136,7 @@ function displayShowInfo(showId, onlyPending) {
 						seasonName = "Extras";
 					}
 					// TAB
-					htmlContent = "<dd><a id='#showInfo_seasons_tabs-" + currentSeason + "' href='#showInfo_seasons_eps-" + currentSeason + "' data-season=" + currentSeason + ">" + seasonName + "</a></dd>";
+					htmlContent = "<dd><a id=\"showInfo_seasons_tabs-" + currentSeason + "\" class=\"showInfo__season--tab\" href='#showInfo_seasons_eps-" + currentSeason + "' data-season=" + currentSeason + ">" + seasonName + "</a></dd>";
 					$("#showInfo_seasons_tabs").append(htmlContent);
 					// TABLE
 					htmlContent = "<div class=\"content\" id=\"showInfo_seasons_eps-" + currentSeason + "\"><table id=\"showInfo_seasons_eps-table-" + currentSeason + "\" class=\"small-12 column\">" + "<thead><tr><th>Episode</th><th>Name</th><th>Air Date</th><th>Description</th><th>Watched</th></tr></thead>" + "<tbody></tbody></table>" + "</div>";
@@ -151,7 +155,6 @@ function displayShowInfo(showId, onlyPending) {
 					episode.overview = $(this).find("Overview").text();
 					episode.season = seasonNumber;
 					episode.number = parseInt($(this).find("EpisodeNumber").text());
-					console.log(episode.id);
 					episode.airDate = $(this).find("FirstAired").text();
 					currentShow.episodes.push(episode);
 				}
@@ -163,7 +166,7 @@ function displayShowInfo(showId, onlyPending) {
 					if (episode.watched === true) {
 						epWatched = 'checked';
 					}
-					htmlContent += "<td><label for='" + episode.id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.id + "' name='" + episode.id + "' " + epWatched + "></td>";
+					htmlContent += "<td><label for='cb-" + episode.id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.id + "' name='" + episode.id + "' " + epWatched + "></td>";
 				}
 				htmlContent += "</tr>";
 				$("#showInfo_seasons_eps-table-" + currentSeason + " tbody").append(htmlContent);
@@ -267,7 +270,11 @@ function loadLocalData(callback) {
 				show.id = data[i].id;
 				show.name = data[i].name;
 				show.seasons = data[i].seasons;
+				show.overview = data[i].overview;
+				show.banner = data[i].banner;
 				show.watchedEpisodes = data[i].watchedEpisodes;
+				show.firstAired = data[i].firstAired;
+				show.network = data[i].network;
 				// Get all episodes from this show
 				var currentEps = data[i].episodes;
 				for (var j = 0; j < currentEps.length; j++) {
@@ -288,6 +295,7 @@ function loadLocalData(callback) {
 				showsArray.push(show);
 			}
 			fillAllShows(false);
+			populateCalendar();
 			if (callback !== undefined) {
 				callback();
 			}
@@ -372,7 +380,7 @@ function searchShows(name) {
 	"use strict";
 	$.ajax({
 		type: "POST",
-		url: "http://thetvdb.com/api/GetSeries.php?seriesname=" + name,
+		url: MIRROR_MAIN + "api/GetSeries.php?seriesname=" + name,
 		async: true,
 		dataType: "xml",
 		// Success
@@ -416,8 +424,9 @@ function searchShows(name) {
  */
 function saveData() {
 	var jsonString = JSON.stringify(showsArray);
-	console.log(jsonString);
-	fs.writeFile("../src/user-data.json", jsonString, {encoding:'utf8'}, function(err) {
+	fs.writeFile("../src/user-data.json", jsonString, {
+		encoding: 'utf8'
+	}, function(err) {
 		if (err) {
 			console.log("Error saving data file: " + err);
 		}
@@ -556,12 +565,113 @@ function setEventListeners() {
 	});
 }
 /**
+ * Creates days for month calendar
+ */
+function createCalendarDays(month, year) {
+	"use strict";
+	var tableBody = $("#calendar__table--tbody"),
+		weekRow = "",
+		firstDate = new Date(year, month, 1), // First date of month
+		lastDate = new Date(year, month + 1, 0), // Last date of month
+		daysInMonth = lastDate.getDate(), // Total days in month
+		weekDayCount = 0;
+	// First clear calendar
+	$(tableBody).html("");
+	weekRow = "<tr>";
+	// Create previous month days, empty
+	var firstDay = firstDate.getDay();
+	if (firstDay != 1) {
+		// getDay start on sunday as 0, we want Monday
+		var i = 1;
+		while (i != firstDay) {
+			weekRow += "<td data-date=\"\"><span class=\"calendar__cell__header\"> </span></td>";
+			i++;
+			weekDayCount++;
+			if (i > 6) {
+				i = 0;
+			}
+		}
+	}
+	// Create rest of the month
+	for (var j = 1; j <= daysInMonth; j++) {
+		weekRow += "<td data-date=\"" + year + "-" + month + "-" + j + "\"><span class=\"calendar__cell__header\">" + j + "</span></td>";
+		weekDayCount++;
+		if (weekDayCount > 6) { // New week
+			weekDayCount = 0;
+			weekRow += "</tr>";
+			tableBody.append(weekRow);
+			if (j + 1 < daysInMonth) {
+				weekRow = "<tr>"; // Start new row
+			}
+		}
+	}
+	while (weekDayCount != 1) {
+		weekRow += "<td data-date=\"\"><span class=\"calendar__cell__header\"> </span></td>";
+		weekDayCount++;
+		// Close week and month
+		if (weekDayCount > 6) {
+			weekDayCount = 1;
+			weekRow += "</tr>";
+			tableBody.append(weekRow);
+		}
+	}
+}
+/**
+ * Finds and returns a show by Id
+ */
+function getShowById(showId) {
+	for (var i = 0; i < showsArray.length; i++) {
+		if(showsArray[i].id == parseInt(showId)) {
+			return showsArray[i];
+		}
+	}
+	return null;
+}
+/**
+ * Return date in format YYYY-MM-DD
+ */
+Date.prototype.getDateFormated = function() {
+	return this.getFullYear() + "-" + this.getMonth() + "-" + this.getDate();
+};
+/**
+ * Fills calendar days with episode events
+ */
+function populateCalendar() {
+	// Get every show and look into episode date
+	for (var i = 0; i < showsArray.length; i++) {
+		var show = showsArray[i];
+		for (var j = 0; j < show.episodes.length; j++) {
+			var episode = show.episodes[j],
+				episodeDate = new Date(episode.airDate);
+			if (calendarDate.getFullYear() == episodeDate.getFullYear() && calendarDate.getMonth() == episodeDate.getMonth()) {
+				// Get day cell and print episode info
+				var tdDay = $("td[data-date=\"" + episodeDate.getDateFormated() + "\"]"),
+						cbId = "cal-episode-" + episode.id;
+				$(tdDay).append("<div class=\"calendar__episode\">" +
+													"<input id=" + cbId + " name=\"" + episode.id + "\" data-show=" + show.id + " type=\"checkbox\" />" +
+													"<label for=" + cbId + ">" + show.name +"</label><br>" +
+													"<label for=" + cbId + ">" + episode.name + "</label>" + "</div>");
+				// Set event and state for the checkbox
+				var cb = $("input[id='" + cbId + "']");
+				$(cb).click(function (event) {
+					console.log("click!");
+					console.log(this.getAttribute("data-show"));
+					console.log(getShowById(this.getAttribute("data-show")));
+					currentShow = getShowById(this.getAttribute("data-show"));
+					console.log(currentShow);
+					onEpisodeWatchedClick(event);
+				});
+				$(cb).prop("checked", episode.watched);
+			}
+		}
+	}
+}
+/**
  * Wait for DOM elements to be loaded and ready
  */
 $(document).ready(function(argument) {
 	"use strict";
 	// Initialize API
-	//initDataProcessing();
 	currentSection = "calendar";
 	// Hide all sections
 	$(".article--main").hide();
@@ -572,6 +682,8 @@ $(document).ready(function(argument) {
 	// Loads data from file and checks for updates
 	loadLocalData();
 	updateData();
+	// Create calendar
+	createCalendarDays(currentDate.getMonth(), currentDate.getFullYear());
 	// Show main section, calendar
 	goToSection("calendar");
 });

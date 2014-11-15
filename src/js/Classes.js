@@ -31,7 +31,7 @@
 		this.id = null;			// Id from TVDB
 		this.name = null;			// Name of the show
 		this.language = null;		// Language indicated in TVDB
-		this.banner = null;		// Banner image (points to url)
+		this.banner = "";		// Banner image (points to url)
 		this.overview = "";		// Short description of the show
 		this.firstAired = null;	// Date of the premiere
 		this.network = "";		// TV network channel where is aired
