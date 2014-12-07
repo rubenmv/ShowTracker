@@ -1,5 +1,8 @@
 http://www.thetvdb.com/
 http://thetvdb.com/wiki/index.php?title=Programmers_API
+Ejemplos:
+http://thetvdb.com/api/GetSeries.php?seriesname=Adventure
+http://thetvdb.com/data/series/152831/all/
 
 - Actualizar la información (mirando con la API) de los shows agregados al inicial el programa. Lo que se podría hacer mejor es simplemente guardar IDs y watched y luego recogerlo todo cada vez desde servidor, asi si cambian las overviews o cualquier otra cosa se cambia automaticamente.
 
