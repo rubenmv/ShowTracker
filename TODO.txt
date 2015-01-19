@@ -11,10 +11,12 @@ calendar
 	- Incluir dias de meses anteriores y posteriores hasta rellenar huecos
 
 paginadeshow
+	- BUG
 	- Marcar las temporadas (los tabs) que tiene episodios por ver
 	- Marcar los episodios por ver con otro color
 
 BUGS Y MEJORAS
+- BUG: si el show esta en la coleccion y hay nuevos episodios, casca con episode = null, porque ahora mismo no recoge los nuevos episodes.
 - Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos, intentar arreglar esto.
 - Cuando se muestran todos los shows se puede indicar los que tienen episodios por ver con algun icono o color diferente.
 - No dejar marcar los episodios que aun no han sido emitidos.

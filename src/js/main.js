@@ -8,7 +8,8 @@ var $ = window.$,
 	calendarDate = currentDate, // we only care about month and year
 	serverTime,
 	MIRROR_MAIN = "http://thetvdb.com/",
-	MIRROR_BANNERS = MIRROR_MAIN + "banners/";
+	MIRROR_BANNERS = MIRROR_MAIN + "banners/",
+	API_KEY = "01C061EC44C068BD"
 /**
  * Gets server time
  */
@@ -78,8 +79,9 @@ function displayShowInfo(showId, onlyPending) {
 	"use strict";
 	$.ajax({
 		type: "POST",
-		/*url: MIRROR_MAIN + "api/GetSeries.php?seriesname=" + showId,*/
-		url: MIRROR_MAIN + "data/series/" + showId + "/all/",
+		/*http://thetvdb.com/api/01C061EC44C068BD/series/81797/all/*/
+		/*url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + + "/all/" */
+		url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + "/all/",
 		async: true,
 		dataType: "xml",
 		// Success
@@ -145,6 +147,7 @@ function displayShowInfo(showId, onlyPending) {
 				// EPISODE
 				episodeCount++;
 				var episode = null;
+				
 				if (inCollection) {
 					episode = getEpisodeInfo(currentShow, seasonNumber, parseInt($(this).find("EpisodeNumber").text()));
 				} else {
