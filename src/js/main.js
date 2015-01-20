@@ -4,44 +4,104 @@ var $ = window.$,
 	currentSection = "calendar", // Active section of the page
 	currentShow = null, // Show displaying information, easier for adding to collection
 	showsArray = [], // All user shows with some info like watched episodes
-	fs = require("fs"), // File System API
 	currentDate = new Date(Date.now()),
 	calendarDate = currentDate, // we only care about month and year
 	serverTime,
 	MIRROR_MAIN = "http://thetvdb.com/",
 	MIRROR_BANNERS = MIRROR_MAIN + "banners/",
 	API_KEY = "01C061EC44C068BD";
-	
+
 /**
  * DBConnector class
  * Manages the connection and operations to the local/external database
  */
 (function(window) {
 	// Constructor
-	function DBConnector(dbUrl) {
-		this.databaseUrl = dbUrl; // Url or name (local) to the database
-		this.connection = new PouchDB(dbUrl);
+	function DBConnector() {
+		this.databaseUrl = null; // Url or name (local) to the database
+		this.connection = null;
 	}
 
+	/**
+	 * Checks if database exists and connects to it or creates a new one
+	 * @param  {[string]} connString [URL to the database]
+	 */
+	DBConnector.prototype.connect = function(connString) {
+		this.databaseUrl = connString;
+		this.connection = new PouchDB(connString);
+	};
+
+	/**
+	 * [Returns Database info]
+	 * @param  {Function} callback [callback function]
+	 * @return {[object]}            [info object]
+	 */
+	DBConnector.prototype.getInfo = function(callback) {
+		this.connection.info().then(function(info) {
+			callback.call(this, info);
+		});
+	};
+	DBConnector.prototype.getAllDocs = function(callback) {
+		this.connection.allDocs({include_docs: true}, function (err, docs) {
+			if (err) {
+				console.log("ERROR RETRIEVING ALL DOCS: " + err);
+			}
+			else {
+				callback.call(this, docs.rows);
+			}
+		});
+	};
+	/**
+	 * [Returns a Show object]
+	 * @param  {[type]}   showId   [unique id for the show]
+	 * @param  {Function} callback [return function]
+	 * @return {[Show]}            [Show object]
+	 */
 	DBConnector.prototype.getShow = function (showId, callback) {
-		this.connection.get(showId).then(function (show) {
-			callback.call(this, show);
-		});
-	}
+		this.connection.get(showId, function (err, doc) {
+			var showObj = null;
+			
+			if (err === null) {
+				showObj = new Show();
+				showObj.fill(doc);
+			}
 
-	DBConnector.prototype.insertShow = function (show) {
-		connection.put(show).then(function (show) {
-			console.log(show);
+			callback.call(this, showObj);
 		});
-	}
+	};
+	/**
+	 * Insert new show and returns related document
+	 * @param  {[Show]}   show     [Show object]
+	 * @param  {Function} callback [return function]
+	 */
+	DBConnector.prototype.insertShow = function (show, callback) {
+		// Create the document
+		var doc = show.data;
+		doc.docType = "show";
+		this.connection.put(doc, function (err, doc) {
+			var response = true;
+			if (err) {
+				console.log("ERROR INSERTING SHOW: " + err);
+				response = false;
+			}
+			callback.call(this, response);
+		});
+	};
 
 	DBConnector.prototype.updateShow = function (show) {
 		// body...
-	}
+	};
 
-	DBConnector.prototype.deleteShow = function (showId) {
-		// body...
-	}
+	DBConnector.prototype.removeShow = function (show, callback) {
+		// Get document associated
+		var doc = show.data;
+		this.connection.remove(doc, function (err, response) {
+			if (err) {
+				console.log("ERROR REMOVING SHOW (" + docId + "): " + err);
+			}
+			callback.call(this, response.ok);
+		});
+	};
 
 	window.DBConnector = DBConnector;
 }(window)); // Esto hace que se ejecute automaticamente
@@ -58,7 +118,7 @@ var $ = window.$,
 			name: null, // Name of the episode (string)
 			overview: "",
 			airDate: null, // Date when it was or will be aired
-			watched: false // If it's been watched by the user	
+			watched: false // If it's been watched by the user
 		};
 	}
 	window.Episode = Episode;
@@ -83,6 +143,12 @@ var $ = window.$,
 			watchedEpisodes: 0 // Count of watched episodes
 		};
 	}
+	/**
+	 * Fills Shows with new info
+	 */
+	Show.prototype.fill = function(newData) {
+		this.data = newData;
+	};
 	window.Show = Show;
 }(window));
 	/**
@@ -114,7 +180,7 @@ var $ = window.$,
 		"use strict";
 		event.preventDefault();
 		// Name attribute keep the show id
-		displayShowInfo(parseInt(event.target.getAttribute("name")));
+		displayShowInfo(event.target.getAttribute("name"));
 	}
 	/**
 	 * Click on an episode checkbox, toggle watched value
@@ -124,7 +190,7 @@ var $ = window.$,
 		"use strict";
 		// This episode should be in currentShow
 		for (var i = 0; i < currentShow.data.episodes.length; i++) {
-			if (currentShow.data.episodes[i].id === parseInt(event.target.name)) {
+			if (currentShow.data.episodes[i]._id === event.target.name) {
 				currentShow.data.episodes[i].watched = !currentShow.data.episodes[i].watched;
 				currentShow.data.watchedEpisodes = countWatchedEpisodes(currentShow);
 				saveData();
@@ -173,7 +239,7 @@ var $ = window.$,
 					// Not in collection
 					// Get show info
 					currentShow = new Show();
-					currentShow.data.id = showId;
+					currentShow.data._id = showId;
 					currentShow.data.name = $(seriesInfo).find("SeriesName").text();
 					currentShow.data.overview = $(seriesInfo).find("Overview").text();
 					currentShow.data.firstAired = $(seriesInfo).find("FirstAired").text();
@@ -230,7 +296,6 @@ var $ = window.$,
 					if (episode == null) {
 						// Show is not in collection, create it
 						episode = new Episode();
-						episode.data.id = parseInt($(this).find("id").text());
 						episode.data.name = $(this).find("EpisodeName").text();
 						episode.data.overview = $(this).find("Overview").text();
 						episode.data.season = seasonNumber;
@@ -246,13 +311,13 @@ var $ = window.$,
 						if (episode.data.watched === true) {
 							epWatched = 'checked';
 						}
-						htmlContent += "<td><label for='cb-" + episode.data.id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.data.id + "' name='" + episode.data.id + "' " + epWatched + "></td>";
+						htmlContent += "<td><label for='cb-" + episode.data._id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.data._id + "' name='" + episode.data._id + "' " + epWatched + "></td>";
 					}
 					htmlContent += "</tr>";
 					$("#showInfo_seasons_eps-table-" + currentSeason + " tbody").append(htmlContent);
 					// Get the new checkbox and set the event
 					if (inCollection) {
-						$("[name='" + episode.data.id + "']").click(onEpisodeWatchedClick);
+						$("[name='" + episode.data._id + "']").click(onEpisodeWatchedClick);
 					}
 				});
 				// Set seasons and episodes info
@@ -283,7 +348,7 @@ var $ = window.$,
 	function getShowInCollection(showId) {
 		"use strict";
 		for (var i = 0; i < showsArray.length; i++) {
-			if (showsArray[i].data.id === showId) {
+			if (showsArray[i].data._id === showId) {
 				return showsArray[i];
 			}
 		}
@@ -315,7 +380,7 @@ var fillAllShows = function fillAllShowsF(onlyPending) {
 			link.textContent = showsArray[i].data.name;
 			$(link).click(onShowClick);
 			// Save the TVDB Id of the show to get the complete info later
-			link.setAttribute("name", showsArray[i].data.id);
+			link.setAttribute("name", showsArray[i].data._id);
 			cell.appendChild(link);
 			row.appendChild(cell);
 			// Second col
@@ -347,7 +412,7 @@ function loadLocalData(callback) {
 			for (var i = 0; i < data.length; i++) {
 				// Create new show with basic info (just name)
 				show = new Show();
-				show.data.id = data[i].id;
+				show.data._id = data[i]._id;
 				show.data.name = data[i].name;
 				show.data.seasons = data[i].seasons;
 				show.data.overview = data[i].overview;
@@ -359,7 +424,7 @@ function loadLocalData(callback) {
 				var currentEps = data[i].episodes;
 				for (var j = 0; j < currentEps.length; j++) {
 					episode = new Episode();
-					episode.data.id = currentEps[j].id;
+					episode.data._id = currentEps[j]._id;
 					episode.data.name = currentEps[j].name;
 					episode.data.overview = currentEps[j].overview;
 					episode.data.season = currentEps[j].season;
@@ -388,66 +453,20 @@ function loadLocalData(callback) {
 	});
 }
 /**
- * Remote data from CouchDB server
+ * Get data from database
  */
-function retrieveUserShows(callback) {
+function retrieveUserShows() {
 	"use strict";
-	dbConnector
-
-	$.ajax({
-		type: "POST",
-		url: "user-data.json",
-		async: true,
-		dataType: "json",
-		// Success
-		success: function(data) {
-			if (data.length <= 0) {
-				return;
-			}
-			var show = null; // To save every show info before pushing to array
-			var episode = null;
-			// For every show, save name and watched episodes
-			for (var i = 0; i < data.length; i++) {
-				// Create new show with basic info (just name)
-				show = new Show();
-				show.data.id = data[i].id;
-				show.data.name = data[i].name;
-				show.data.seasons = data[i].seasons;
-				show.data.overview = data[i].overview;
-				show.data.banner = data[i].banner;
-				show.data.watchedEpisodes = data[i].watchedEpisodes;
-				show.data.firstAired = data[i].firstAired;
-				show.data.network = data[i].network;
-				// Get all episodes from this show
-				var currentEps = data[i].episodes;
-				for (var j = 0; j < currentEps.length; j++) {
-					episode = new Episode();
-					episode.data.id = currentEps[j].id;
-					episode.data.name = currentEps[j].name;
-					episode.data.overview = currentEps[j].overview;
-					episode.data.season = currentEps[j].season;
-					episode.data.number = currentEps[j].number;
-					episode.data.airDate = currentEps[j].airDate;
-					episode.data.watched = currentEps[j].watched;
-					// Save episode to show
-					show.data.episodes.push(episode);
-					/*if (episode.data.watched === true) {
-						show.data.watchedEpisodes++;
-					}*/
-				}
-				showsArray.push(show);
-			}
-			fillAllShows(false);
-			populateCalendar();
-			if (callback !== undefined) {
-				callback();
-			}
-		},
-		// Error
-		error: function(xhr, status, error) {
-			console.error(error);
-			$("#modalLocalDataError").foundation("reveal", "open");
+	dbConnector.getAllDocs(function(docs) {
+		for (var i = 0; i < docs.length; i++) {
+			// Create Show and append data
+			var show = new Show();
+			show.data = docs[i].doc;
+			showsArray.push(show);
 		}
+
+		fillAllShows(false);
+		populateCalendar();
 	});
 }
 /**
@@ -566,44 +585,53 @@ function searchShows(name) {
  * Saves shows to local file
  */
 function saveData() {
-	var jsonString = JSON.stringify(showsArray);
+	/*var jsonString = JSON.stringify(showsArray);
 	fs.writeFile("../src/user-data.json", jsonString, {
 		encoding: 'utf8'
 	}, function(err) {
 		if (err) {
 			console.log("Error saving data file: " + err);
 		}
-	});
+	});*/
 }
 /**
  * Adds a show to the user collection
  */
 function addToCollection(show) {
 	if (show !== null) {
-		showsArray.push(show);
-		saveData();
-		// Refill shows table
-		fillAllShows(false);
-		// Redisplay show info
-		displayShowInfo(show.data.id);
-	}
-}
-/**
- * Adds a show to the user collection
- */
-function removeFromCollection(show) {
-	if (show !== null) {
-		for (var i = 0; i < showsArray.length; i++) {
-			if (showsArray[i].data.name === show.data.name) {
-				showsArray.splice(i, 1);
-				saveData();
+		// Try insert into db
+		dbConnector.insertShow(show, function(response) {
+			if (response) {
+				showsArray.push(show);
 				// Refill shows table
 				fillAllShows(false);
 				// Redisplay show info
-				displayShowInfo(show.data.id);
-				return;
+				displayShowInfo(show.data._id);
 			}
-		}
+		});
+	}
+}
+/**
+ * Remove a show from the user collection
+ */
+function removeFromCollection(show) {
+	if (show !== null) {
+		var id = show.data._id;
+		// Try removing from db
+		dbConnector.removeShow(show, function(response) {
+			if (response) {
+				for (var i = 0; i < showsArray.length; i++) {
+					if (showsArray[i].data._id === id) {
+						showsArray.splice(i, 1);
+						break;
+					}
+				}
+				// Refill shows table
+				fillAllShows(false);
+				// Redisplay show info
+				displayShowInfo(id);
+			}
+		});
 	}
 }
 /**
@@ -631,7 +659,7 @@ function markAllEpisodesInShow(show, value) {
 	}
 	show.data.watchedEpisodes = countWatchedEpisodes(show);
 	saveData();
-	displayShowInfo(show.data.id);
+	displayShowInfo(show.data._id);
 	fillAllShows(false);
 }
 /**
@@ -651,7 +679,7 @@ function markAllEpisodesInSeason(show, value) {
 		}
 		show.data.watchedEpisodes = countWatchedEpisodes(show);
 		saveData();
-		displayShowInfo(show.data.id);
+		displayShowInfo(show.data._id);
 		fillAllShows(false);
 	}
 }
@@ -704,7 +732,7 @@ function setEventListeners() {
 	$("#showInfo__checkboxWatched").change(function(e) {
 		e.preventDefault();
 		// prop gets direct value
-		displayShowInfo(currentShow.data.id, $(this).prop("checked"));
+		displayShowInfo(currentShow.data._id, $(this).prop("checked"));
 	});
 }
 /**
@@ -764,7 +792,7 @@ function createCalendarDays(month, year) {
  */
 function getShowById(showId) {
 	for (var i = 0; i < showsArray.length; i++) {
-		if (showsArray[i].data.id == parseInt(showId)) {
+		if (showsArray[i].data._id === showId) {
 			return showsArray[i];
 		}
 	}
@@ -789,8 +817,8 @@ function populateCalendar() {
 			if (calendarDate.getFullYear() == episodeDate.getFullYear() && calendarDate.getMonth() == episodeDate.getMonth()) {
 				// Get day cell and print episode info
 				var tdDay = $("td[data-date=\"" + episodeDate.getDateFormated() + "\"]"),
-					cbId = "cal-episode-" + episode.data.id;
-				$(tdDay).append("<div class=\"calendar__episode\">" + "<input id=" + cbId + " name=\"" + episode.data.id + "\" data-show=" + show.data.id + " type=\"checkbox\" />" + "<label for=" + cbId + ">" + show.data.name + "</label><br>" + "<label for=" + cbId + ">" + episode.data.name + "</label>" + "</div>");
+					cbId = "cal-episode-" + episode.data._id;
+				$(tdDay).append("<div class=\"calendar__episode\">" + "<input id=" + cbId + " name=\"" + episode.data._id + "\" data-show=" + show.data._id + " type=\"checkbox\" />" + "<label for=" + cbId + ">" + show.data.name + "</label><br>" + "<label for=" + cbId + ">" + episode.data.name + "</label>" + "</div>");
 				// Set event and state for the checkbox
 				var cb = $("input[id='" + cbId + "']");
 				$(cb).click(function(event) {
@@ -812,17 +840,13 @@ function populateCalendar() {
 $(document).ready(function(argument) {
 	"use strict";
 	// Set up database
-	dbConnector = new DBConnector("https://showtracker.couchappy.com/showtracker/");
-	//var db = new PouchDB("https://showtracker.couchappy.com/showtracker/");
-	//var db = new PouchDB("showtrackerdb");
-	/*db.info().then(function(info) {
-		db.info().then(function(info) {
-			console.log(info);
-		})
-	});*/
-	db.getShow(1, function (show) {
-		console.log(show);
-	});
+	dbConnector = new DBConnector();
+	//dbConnector.connect("https://showtracker.couchappy.com/showtracker/");
+	dbConnector.connect("showtracker");
+
+	/*dbConnector.getInfo(function(info){
+		console.log(info);
+	});	*/
 
 	// Initialize API
 	currentSection = "calendar";

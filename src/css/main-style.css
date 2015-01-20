@@ -1,3 +1,10 @@
+#showInfo p {
+	font-size: 0.8em;
+}
+#showInfo .showInfoData, #showInfoBanner {
+	display: inline-block;
+	vertical-align: middle;
+}
 .main-content {
 	padding: 1em 1em;
 	margin-bottom: 1em;
@@ -6,6 +13,7 @@
 	display: none;
 }
 #footer {
+	font-size: 0.9em;
 	height: 50px;
 	position: fixed;
 	bottom: 0px;
