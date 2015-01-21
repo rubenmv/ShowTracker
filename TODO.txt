@@ -1,3 +1,6 @@
+----
+TODO
+----
 calendar
 	- Premieres, finales y otros con distinto color.
 
@@ -13,10 +16,16 @@ BUGS Y MEJORAS
 - No contar los episodios especiales o extras.
 - Ocultar episodios que aparecen medio vacios o incorrectos.
 - Ocultar episodios que no son episodios como el de "Sons of anarchy on Conan", etc.
-- Mejorar aspecto general
-- Usar AngularJS o algun otro framework para rellenar las tablas automaticamente
+- Usar AngularJS para bindear los episodios y demas informacion
 
+--------
+HOSTINGS
+--------
+http://www.couchappy.com/
+
+----
 APIs
+----
 - TVDB
 	http://www.thetvdb.com/
 	http://thetvdb.com/wiki/index.php?title=Programmers_API
