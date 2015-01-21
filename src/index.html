@@ -6,6 +6,7 @@
 		<title>Show Tracker | My Shows</title>
 		<link rel="stylesheet" href="css/foundation.css" />
 		<link rel="stylesheet" href="css/main-style.css" />
+		<script src="js/vendor/modernizr.js"></script>
 	</head>
 	<body>
 		<!-- ************************************************************** -->
@@ -49,7 +50,12 @@
 			<!-- CALENDAR -->
 			<!-- ======== -->
 			<article id="calendar" class="article--main row">
-			<h2>Calendar</h2>
+			<h2 class="hidden">Calendar</h2>
+			<div id="calendarHeader">
+				<button id="calendarPrev">prev</button>
+				<h3 id="calendarDate">Month</h3>
+				<button id="calendarNext">next</button>
+			</div>
 			<!-- Shows -->
 			<table id="calendar__table" class="small-12 column">
 				<thead>
@@ -67,12 +73,6 @@
 				<tbody id="calendar__table--tbody">
 				</tbody>
 			</table>
-			</article>
-			<!-- ============== -->
-			<!-- UNWATCHED LIST -->
-			<!-- ============== -->
-			<article id="unwatched" class="article--main row">
-			<h2>Unwatched episodes</h2>
 			</article>
 			<!-- ======== -->
 			<!-- MY SHOWS -->
@@ -200,6 +200,7 @@
 		<script src="js/pouchdb-3.2.1.min.js"></script>
 		<script src="js/vendor/jquery.js"></script>
 		<script src="js/foundation.min.js"></script>
+		<script src="js/classes.js"></script>
 		<script src="js/main.js"></script>
 		<script>
 			$(document).foundation();

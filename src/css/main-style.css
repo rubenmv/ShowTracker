@@ -1,3 +1,18 @@
+h3 {
+	display: inline-block;
+	margin: 0 1em;
+}
+button, .button {
+	margin: 0.1em !important;
+	padding: 0.5em !important;
+}
+input {
+	margin: 0 !important;
+	vertical-align: middle !important;
+}
+#calendarHeader {
+	text-align: center;
+}
 #showInfo p {
 	font-size: 0.8em;
 }
@@ -41,14 +56,16 @@ table th {
 
 }
 table td, table label {
-	font-size: 0.8em !important;
+	font-size: 0.9em !important;
 }
 
 #calendar__table td {
 	padding: 0 !important;
 	margin: 0 !important;
-	max-width: 100px;
-	max-height: 100px;
+	width: 100px !important;
+	min-width: 100px !important; 
+	height: 100px;
+	max-height: 100px !important;
 	vertical-align: top;
 }
 .calendar__cell__header {
@@ -58,6 +75,9 @@ table td, table label {
 	font-weight: 700;
 	font-size: 0.8em;
 }
+.calendar__cell--active {
+	background-color: #A8DCFF;
+}
 
 .showInfo__season--tab {
 	font-weight: 700;
@@ -65,7 +85,6 @@ table td, table label {
 }
 
 .calendar__episode {
-	font-size: 1.0em !important;
 	background-color: #eee;
 	border: 1px solid #aaa;
 	margin: 0.5em 0.5em;

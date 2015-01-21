@@ -1,363 +1,241 @@
 /*global window, document, console, window, Show, Episode*/
-var $ = window.$,
+var DATABASE_URL = "showtracker",
+	MIRROR_MAIN = "http://thetvdb.com/",
+	MIRROR_BANNERS = MIRROR_MAIN + "banners/",
+	API_KEY = "01C061EC44C068BD",
+	$ = window.$,
 	dbConnector = null,
 	currentSection = "calendar", // Active section of the page
 	currentShow = null, // Show displaying information, easier for adding to collection
 	showsArray = [], // All user shows with some info like watched episodes
-	currentDate = new Date(Date.now()),
-	calendarDate = currentDate, // we only care about month and year
-	serverTime,
-	MIRROR_MAIN = "http://thetvdb.com/",
-	MIRROR_BANNERS = MIRROR_MAIN + "banners/",
-	API_KEY = "01C061EC44C068BD";
-
+	currentDate = new Date(Date.now()), // Current date to reset calendar
+	calendarDate = new Date(currentDate.getTime()), // Date to show in calendar (prev or next months)
+	serverTime;
 /**
- * DBConnector class
- * Manages the connection and operations to the local/external database
+ * Gets server time
  */
-(function(window) {
-	// Constructor
-	function DBConnector() {
-		this.databaseUrl = null; // Url or name (local) to the database
-		this.connection = null;
-	}
-
-	/**
-	 * Checks if database exists and connects to it or creates a new one
-	 * @param  {[string]} connString [URL to the database]
-	 */
-	DBConnector.prototype.connect = function(connString) {
-		this.databaseUrl = connString;
-		this.connection = new PouchDB(connString);
-	};
-
-	/**
-	 * [Returns Database info]
-	 * @param  {Function} callback [callback function]
-	 * @return {[object]}            [info object]
-	 */
-	DBConnector.prototype.getInfo = function(callback) {
-		this.connection.info().then(function(info) {
-			callback.call(this, info);
-		});
-	};
-	DBConnector.prototype.getAllDocs = function(callback) {
-		this.connection.allDocs({include_docs: true}, function (err, docs) {
-			if (err) {
-				console.log("ERROR RETRIEVING ALL DOCS: " + err);
-			}
-			else {
-				callback.call(this, docs.rows);
-			}
-		});
-	};
-	/**
-	 * [Returns a Show object]
-	 * @param  {[type]}   showId   [unique id for the show]
-	 * @param  {Function} callback [return function]
-	 * @return {[Show]}            [Show object]
-	 */
-	DBConnector.prototype.getShow = function (showId, callback) {
-		this.connection.get(showId, function (err, doc) {
-			var showObj = null;
-			
-			if (err === null) {
-				showObj = new Show();
-				showObj.fill(doc);
-			}
-
-			callback.call(this, showObj);
-		});
-	};
-	/**
-	 * Insert new show and returns related document
-	 * @param  {[Show]}   show     [Show object]
-	 * @param  {Function} callback [return function]
-	 */
-	DBConnector.prototype.insertShow = function (show, callback) {
-		// Create the document
-		var doc = show.data;
-		doc.docType = "show";
-		this.connection.put(doc, function (err, doc) {
-			var response = true;
-			if (err) {
-				console.log("ERROR INSERTING SHOW: " + err);
-				response = false;
-			}
-			callback.call(this, response);
-		});
-	};
-
-	DBConnector.prototype.updateShow = function (show) {
-		// body...
-	};
-
-	DBConnector.prototype.removeShow = function (show, callback) {
-		// Get document associated
-		var doc = show.data;
-		this.connection.remove(doc, function (err, response) {
-			if (err) {
-				console.log("ERROR REMOVING SHOW (" + docId + "): " + err);
-			}
-			callback.call(this, response.ok);
-		});
-	};
-
-	window.DBConnector = DBConnector;
-}(window)); // Esto hace que se ejecute automaticamente
+function retrieveServerTime() {
+	"use strict";
+	$.ajax({
+		type: "POST",
+		url: MIRROR_MAIN + "api/Updates.php?type=none",
+		async: true,
+		dataType: "xml",
+		// Success
+		success: function(data) {
+			// Parse XML just in case there is any error
+			serverTime = new Date($(data).find("Time").text());
+		},
+		// Error
+		error: function(xhr, status, error) {
+			console.error("There was a problem retrieving server time:\n" + xhr.responseText);
+		}
+	});
+}
 /**
- * Episode class
- * Contains all info about an episode, even if it's been watched
- * This is to be used in Show objects
+ * Finds and returns a show by Id
  */
-(function(window) {
-	function Episode() {
-		this.data = { // Serializable
-			season: null, // Number of the season
-			number: null, // Number of the episode in the season
-			name: null, // Name of the episode (string)
-			overview: "",
-			airDate: null, // Date when it was or will be aired
-			watched: false // If it's been watched by the user
-		};
+function getShowById(showId) {
+	for (var i = 0; i < showsArray.length; i++) {
+		if (showsArray[i].data._id === showId) {
+			return showsArray[i];
+		}
 	}
-	window.Episode = Episode;
-}(window));
+	return null;
+}
 /**
- * Show class
- * Contains info about a show, including episodes
+ * Return date in format YYYY-MM-DD
  */
-(function(window) {
-	function Show() {
-		this.data = { // Serializable
-			_id: null, // Id from TVDB
-			name: null, // Name of the show
-			language: null, // Language indicated in TVDB
-			banner: "", // Banner image (points to url)
-			overview: "", // Short description of the show
-			firstAired: null, // Date of the premiere
-			network: "", // TV network channel where is aired
-			imdbId: null, // IMDB Id
-			seasons: 0, // Number of seasons
-			episodes: [], // Array containing all episodes (Episode class)
-			watchedEpisodes: 0 // Count of watched episodes
-		};
+Date.prototype.getDateFormated = function() {
+	return this.getFullYear() + "-" + this.getMonth() + "-" + this.getDate();
+};
+/**
+ * Click on a show name, open show page
+ * @param {Object} event [[Description]]
+ */
+function onShowClick(event) {
+	"use strict";
+	event.preventDefault();
+	// Name attribute keep the show id
+	displayShowInfo(event.target.getAttribute("name"));
+}
+/**
+ * Click on an episode checkbox, toggle watched value
+ * @param {Object} event [[Description]]
+ */
+function onEpisodeWatchedClick(event) {
+	"use strict";
+	// This episode should be in currentShow
+	for (var i = 0; i < currentShow.data.episodes.length; i++) {
+		if (currentShow.data.episodes[i]._id === event.target.name) {
+			currentShow.data.episodes[i].watched = !currentShow.data.episodes[i].watched;
+			currentShow.data.watchedEpisodes = countWatchedEpisodes(currentShow);
+			saveData();
+			fillAllShows();
+			return;
+		}
 	}
-	/**
-	 * Fills Shows with new info
-	 */
-	Show.prototype.fill = function(newData) {
-		this.data = newData;
-	};
-	window.Show = Show;
-}(window));
-	/**
-	 * Gets server time
-	 */
-	function retrieveServerTime() {
-		"use strict";
-		$.ajax({
-			type: "POST",
-			url: MIRROR_MAIN + "api/Updates.php?type=none",
-			async: true,
-			dataType: "xml",
-			// Success
-			success: function(data) {
-				// Parse XML just in case there is any error
-				serverTime = new Date($(data).find("Time").text());
-			},
-			// Error
-			error: function(xhr, status, error) {
-				console.error("There was a problem retrieving server time:\n" + xhr.responseText);
-			}
-		});
+}
+/**
+ * [[Checks if episode is marked as watched by the user]]
+ * Returns Episode object or null
+ */
+function getEpisodeInfo(show, seasonNumber, episodeNumber) {
+	for (var i = 0; i < show.data.episodes.length; i++) {
+		if (show.data.episodes[i].data.season === seasonNumber && show.data.episodes[i].data.number === episodeNumber) {
+			return show.data.episodes[i];
+		}
 	}
-	/**
-	 * Click on a show name, open show page
-	 * @param {Object} event [[Description]]
-	 */
-	function onShowClick(event) {
-		"use strict";
-		event.preventDefault();
-		// Name attribute keep the show id
-		displayShowInfo(event.target.getAttribute("name"));
-	}
-	/**
-	 * Click on an episode checkbox, toggle watched value
-	 * @param {Object} event [[Description]]
-	 */
-	function onEpisodeWatchedClick(event) {
-		"use strict";
-		// This episode should be in currentShow
-		for (var i = 0; i < currentShow.data.episodes.length; i++) {
-			if (currentShow.data.episodes[i]._id === event.target.name) {
-				currentShow.data.episodes[i].watched = !currentShow.data.episodes[i].watched;
-				currentShow.data.watchedEpisodes = countWatchedEpisodes(currentShow);
-				saveData();
-				fillAllShows();
+	return null;
+}
+/**
+ * Retrieve show info and show it
+ * @param  {[int]} showId [Id of the show to search for]
+ * @param  {[boolean]} onlyPending [Show only pending episodes]
+ */
+function displayShowInfo(showId, onlyPending) {
+	"use strict";
+	$.ajax({
+		type: "POST",
+		/*http://thetvdb.com/api/01C061EC44C068BD/series/81797/all/*/
+		/*url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + + "/all/" */
+		url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + "/all/",
+		async: true,
+		dataType: "xml",
+		// Success
+		success: function(data) {
+			if ($(data).text().trim() === "") {
+				$("#modalSeriesNotFound").foundation("reveal", "open");
 				return;
 			}
-		}
-	}
-	/**
-	 * [[Checks if episode is marked as watched by the user]]
-	 * Returns Episode object or null
-	 */
-	function getEpisodeInfo(show, seasonNumber, episodeNumber) {
-		for (var i = 0; i < show.data.episodes.length; i++) {
-			if (show.data.episodes[i].season === seasonNumber && show.data.episodes[i].number === episodeNumber) {
-				return show.data.episodes[i];
+			currentShow = getShowInCollection(showId);
+			var seriesInfo = $(data).find("Series")[0],
+				inCollection = (currentShow !== null);
+			// GENERAL INFO
+			if (!inCollection) {
+				// Not in collection
+				// Get show info
+				currentShow = new Show();
+				currentShow.data._id = showId;
+				currentShow.data.name = $(seriesInfo).find("SeriesName").text();
+				currentShow.data.overview = $(seriesInfo).find("Overview").text();
+				currentShow.data.firstAired = $(seriesInfo).find("FirstAired").text();
+				currentShow.data.network = $(seriesInfo).find("Network").text();
+				currentShow.data.banner = MIRROR_BANNERS + $(seriesInfo).find("banner").text();
 			}
-		}
-		return null;
-	}
-	/**
-	 * Retrieve show info and show it
-	 * @param  {[int]} showId [Id of the show to search for]
-	 * @param  {[boolean]} onlyPending [Show only pending episodes]
-	 */
-	function displayShowInfo(showId, onlyPending) {
-		"use strict";
-		$.ajax({
-			type: "POST",
-			/*http://thetvdb.com/api/01C061EC44C068BD/series/81797/all/*/
-			/*url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + + "/all/" */
-			url: MIRROR_MAIN + "api/" + API_KEY + "/series/" + showId + "/all/",
-			async: true,
-			dataType: "xml",
-			// Success
-			success: function(data) {
-				if ($(data).text().trim() === "") {
-					$("#modalSeriesNotFound").foundation("reveal", "open");
-					return;
+			// Set page info
+			$("#showInfoName")[0].textContent = currentShow.data.name;
+			$("#showInfoOverview")[0].textContent = currentShow.data.overview;
+			$("#showInfoFirstAired")[0].textContent = currentShow.data.firstAired;
+			$("#showInfoNetWork")[0].textContent = currentShow.data.network;
+			$("#showInfoBanner")[0].src = currentShow.data.banner;
+			// Other info we don't need to save
+			$("#showInfoRuntime")[0].textContent = $(seriesInfo).find("Runtime").text();
+			$("#showInfoStatus")[0].textContent = $(seriesInfo).find("Status").text();
+			$("#showInfoAirDayTime")[0].textContent = $(seriesInfo).find("Airs_DayOfWeek").text() + " at " + $(seriesInfo).find("Airs_Time").text();
+			$("#showInfoIMDB").html("<a href='http://www.imdb.com/title/" + $(seriesInfo).find("IMDB_ID").text() + "'>" + currentShow.data.name + " on IMDB</a>");
+			$("#showInfoTVDB").html("<a href=\"" + MIRROR_MAIN + "?tab=series&id=" + showId + "\">" + currentShow.data.name + " on TVDB</a>");
+			// SEASONS AND EPISODES
+			// Cleanup
+			$("#showInfo_seasons_tabs").html("");
+			$("#showInfo_seasons_eps").html("");
+			// Retrieve episodes info and print it
+			var currentSeason = -1,
+				seasonsCount = 0,
+				episodeCount = 0;
+			$(data).find("Episode").each(function() {
+				var seasonNumber = parseInt($(this).find("SeasonNumber").text()),
+					htmlContent = "";
+				// SEASON
+				if (currentSeason < seasonNumber) {
+					seasonsCount++;
+					currentSeason = seasonNumber;
+					// Create new season tab and table
+					var seasonName = currentSeason;
+					if (currentSeason === 0) {
+						seasonName = "Extras";
+					}
+					// TAB
+					htmlContent = "<dd><a id=\"showInfo_seasons_tabs-" + currentSeason + "\" class=\"showInfo__season--tab\" href='#showInfo_seasons_eps-" + currentSeason + "' data-season=" + currentSeason + ">" + seasonName + "</a></dd>";
+					$("#showInfo_seasons_tabs").append(htmlContent);
+					// TABLE
+					htmlContent = "<div class=\"content\" id=\"showInfo_seasons_eps-" + currentSeason + "\"><table id=\"showInfo_seasons_eps-table-" + currentSeason + "\" class=\"small-12 column\">" + "<thead><tr><th>Episode</th><th>Name</th><th>Air Date</th><th>Description</th><th>Watched</th></tr></thead>" + "<tbody></tbody></table>" + "</div>";
+					$("#showInfo_seasons_eps").append(htmlContent);
 				}
-				currentShow = getShowInCollection(showId);
-				var seriesInfo = $(data).find("Series")[0],
-					inCollection = (currentShow !== null);
-				// GENERAL INFO
-				if (!inCollection) {
-					// Not in collection
-					// Get show info
-					currentShow = new Show();
-					currentShow.data._id = showId;
-					currentShow.data.name = $(seriesInfo).find("SeriesName").text();
-					currentShow.data.overview = $(seriesInfo).find("Overview").text();
-					currentShow.data.firstAired = $(seriesInfo).find("FirstAired").text();
-					currentShow.data.network = $(seriesInfo).find("Network").text();
-					currentShow.data.banner = MIRROR_BANNERS + $(seriesInfo).find("banner").text();
-				}
-				// Set page info
-				$("#showInfoName")[0].textContent = currentShow.data.name;
-				$("#showInfoOverview")[0].textContent = currentShow.data.overview;
-				$("#showInfoFirstAired")[0].textContent = currentShow.data.firstAired;
-				$("#showInfoNetWork")[0].textContent = currentShow.data.network;
-				$("#showInfoBanner")[0].src = currentShow.data.banner;
-				// Other info we don't need to save
-				$("#showInfoRuntime")[0].textContent = $(seriesInfo).find("Runtime").text();
-				$("#showInfoStatus")[0].textContent = $(seriesInfo).find("Status").text();
-				$("#showInfoAirDayTime")[0].textContent = $(seriesInfo).find("Airs_DayOfWeek").text() + " at " + $(seriesInfo).find("Airs_Time").text();
-				$("#showInfoIMDB").html("<a href='http://www.imdb.com/title/" + $(seriesInfo).find("IMDB_ID").text() + "'>" + currentShow.data.name + " on IMDB</a>");
-				$("#showInfoTVDB").html("<a href=\"" + MIRROR_MAIN + "?tab=series&id=" + showId + "\">" + currentShow.data.name + " on TVDB</a>");
-				// SEASONS AND EPISODES
-				// Cleanup
-				$("#showInfo_seasons_tabs").html("");
-				$("#showInfo_seasons_eps").html("");
-				// Retrieve episodes info and print it
-				var currentSeason = -1,
-					seasonsCount = 0,
-					episodeCount = 0;
-				$(data).find("Episode").each(function() {
-					var seasonNumber = parseInt($(this).find("SeasonNumber").text()),
-						htmlContent = "";
-					// SEASON
-					if (currentSeason < seasonNumber) {
-						seasonsCount++;
-						currentSeason = seasonNumber;
-						// Create new season tab and table
-						var seasonName = "Season " + currentSeason;
-						if (currentSeason === 0) {
-							seasonName = "Extras";
-						}
-						// TAB
-						htmlContent = "<dd><a id=\"showInfo_seasons_tabs-" + currentSeason + "\" class=\"showInfo__season--tab\" href='#showInfo_seasons_eps-" + currentSeason + "' data-season=" + currentSeason + ">" + seasonName + "</a></dd>";
-						$("#showInfo_seasons_tabs").append(htmlContent);
-						// TABLE
-						htmlContent = "<div class=\"content\" id=\"showInfo_seasons_eps-" + currentSeason + "\"><table id=\"showInfo_seasons_eps-table-" + currentSeason + "\" class=\"small-12 column\">" + "<thead><tr><th>Episode</th><th>Name</th><th>Air Date</th><th>Description</th><th>Watched</th></tr></thead>" + "<tbody></tbody></table>" + "</div>";
-						$("#showInfo_seasons_eps").append(htmlContent);
-					}
-					// EPISODE
-					episodeCount++;
-					var episode = null;
-					// Show already in collection
-					if (inCollection) {
-						episode = getEpisodeInfo(currentShow, seasonNumber, parseInt($(this).find("EpisodeNumber").text()));
-					}
-					// New episode
-					if (episode == null) {
-						// Show is not in collection, create it
-						episode = new Episode();
-						episode.data.name = $(this).find("EpisodeName").text();
-						episode.data.overview = $(this).find("Overview").text();
-						episode.data.season = seasonNumber;
-						episode.data.number = parseInt($(this).find("EpisodeNumber").text());
-						episode.data.airDate = $(this).find("FirstAired").text();
-						currentShow.data.episodes.push(episode);
-					}
-					// Get the tbody of the table in the current season tab
-					htmlContent = "<tr><td>" + episode.data.number + "</td>" + "<td>" + episode.data.name + "</td>" + "<td>" + episode.data.airDate + "</td>" + "<td>" + episode.data.overview + "</td>";
-					// Check if episode is watched
-					var epWatched = '';
-					if (inCollection) {
-						if (episode.data.watched === true) {
-							epWatched = 'checked';
-						}
-						htmlContent += "<td><label for='cb-" + episode.data._id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.data._id + "' name='" + episode.data._id + "' " + epWatched + "></td>";
-					}
-					htmlContent += "</tr>";
-					$("#showInfo_seasons_eps-table-" + currentSeason + " tbody").append(htmlContent);
-					// Get the new checkbox and set the event
-					if (inCollection) {
-						$("[name='" + episode.data._id + "']").click(onEpisodeWatchedClick);
-					}
-				});
-				// Set seasons and episodes info
-				$("#showInfoSeasons")[0].textContent = seasonsCount; // Last seasons found
-				$("#showInfoEpisodes")[0].textContent = episodeCount;
-				// Set user controls
+				// EPISODE
+				episodeCount++;
+				var episode = null;
+				// Show already in collection
 				if (inCollection) {
-					$("#showInfo__button--add").hide();
-					$("#showInfo__button--remove").show();
-					$(".showInfo__userControls").show();
-				} else {
-					$("#showInfo__button--add").show();
-					$("#showInfo__button--remove").hide();
-					$(".showInfo__userControls").hide();
+					episode = getEpisodeInfo(currentShow, seasonNumber, parseInt($(this).find("EpisodeNumber").text()));
 				}
-				goToSection("showInfo");
-			},
-			// Error
-			error: function(xhr, status, error) {
-				$("#modalServerError").foundation("reveal", "open");
-				console.error("There was a problem retrieving series info:\n" + xhr.responseText);
+				// New episode
+				if (episode == null) {
+					// Show is not in collection, create it
+					episode = new Episode();
+					episode.data._id = $(this).find("id").text();
+					episode.data.name = $(this).find("EpisodeName").text();
+					episode.data.overview = $(this).find("Overview").text();
+					episode.data.season = seasonNumber;
+					episode.data.number = parseInt($(this).find("EpisodeNumber").text());
+					episode.data.airDate = $(this).find("FirstAired").text();
+					currentShow.data.episodes.push(episode);
+				}
+				// Get the tbody of the table in the current season tab
+				htmlContent = "<tr><td>" + episode.data.number + "</td>" + "<td>" + episode.data.name + "</td>" + "<td>" + episode.data.airDate + "</td>" + "<td>" + episode.data.overview + "</td>";
+				// Check if episode is watched
+				var epWatched = '';
+				if (inCollection) {
+					if (episode.data.watched === true) {
+						epWatched = 'checked';
+					}
+					htmlContent += "<td><label for='cb-" + episode.data._id + "'>Mark as watched</label>" + "<input type='checkbox' id='cb-" + episode.data._id + "' name='" + episode.data._id + "' " + epWatched + "></td>";
+				}
+				htmlContent += "</tr>";
+				$("#showInfo_seasons_eps-table-" + currentSeason + " tbody").append(htmlContent);
+				// Get the new checkbox and set the event
+				if (inCollection) {
+					$("[name='" + episode.data._id + "']").click(onEpisodeWatchedClick);
+				}
+			});
+			// Set seasons and episodes info
+			$("#showInfoSeasons")[0].textContent = seasonsCount; // Last seasons found
+			$("#showInfoEpisodes")[0].textContent = episodeCount;
+			// Set user controls
+			if (inCollection) {
+				$("#showInfo__button--add").hide();
+				$("#showInfo__button--remove").show();
+				$(".showInfo__userControls").show();
+			} else {
+				$("#showInfo__button--add").show();
+				$("#showInfo__button--remove").hide();
+				$(".showInfo__userControls").hide();
 			}
-		});
-	}
-	/**
-	 * Checks if a show is in user collection
-	 */
-	function getShowInCollection(showId) {
-		"use strict";
-		for (var i = 0; i < showsArray.length; i++) {
-			if (showsArray[i].data._id === showId) {
-				return showsArray[i];
-			}
+			goToSection("showInfo");
+		},
+		// Error
+		error: function(xhr, status, error) {
+			$("#modalServerError").foundation("reveal", "open");
+			console.error("There was a problem retrieving series info:\n" + xhr.responseText);
 		}
-		return null;
+	});
+}
+/**
+ * Checks if a show is in user collection
+ */
+function getShowInCollection(showId) {
+	"use strict";
+	for (var i = 0; i < showsArray.length; i++) {
+		if (showsArray[i].data._id === showId) {
+			return showsArray[i];
+		}
 	}
-	/**
-	 * Prints a list of all series in user collection
-	 * @param  {[boolean]} onlyPending [Show only shows with pending episodes (not watched)]
-	 */
+	return null;
+}
+/**
+ * Prints a list of all series in user collection
+ * @param  {[boolean]} onlyPending [Show only shows with pending episodes (not watched)]
+ */
 var fillAllShows = function fillAllShowsF(onlyPending) {
 	"use strict";
 	var showsCount = showsArray.length,
@@ -464,19 +342,14 @@ function retrieveUserShows() {
 			show.data = docs[i].doc;
 			showsArray.push(show);
 		}
-
 		fillAllShows(false);
 		populateCalendar();
 	});
 }
 /**
- * Syncs local data with TVDB
+ * Import from EpisodeCalendar data file
  */
-function updateData() {}
-/**
- * Retrieve user data from file
- */
-function importUserData(callback) {
+function importEpisodeCalendar() {
 	"use strict";
 	$.ajax({
 		type: "POST",
@@ -585,14 +458,7 @@ function searchShows(name) {
  * Saves shows to local file
  */
 function saveData() {
-	/*var jsonString = JSON.stringify(showsArray);
-	fs.writeFile("../src/user-data.json", jsonString, {
-		encoding: 'utf8'
-	}, function(err) {
-		if (err) {
-			console.log("Error saving data file: " + err);
-		}
-	});*/
+	
 }
 /**
  * Adds a show to the user collection
@@ -694,7 +560,23 @@ function setEventListeners() {
 	});
 	$("#menu--main__calendar").click(function(e) {
 		e.preventDefault();
+		calendarDate = new Date(currentDate.getTime());
+		createCalendarDays();
+		populateCalendar();
 		goToSection("calendar");
+	});
+	$("#calendarPrev").click(function(e) {
+		e.preventDefault();
+		// Go back 1 day from first day of month
+		calendarDate.setDate(-1); // Sets the day of month (yeah ¬¬)
+		createCalendarDays();
+		populateCalendar();
+	});
+	$("#calendarNext").click(function(e) {
+		e.preventDefault();
+		calendarDate.setMonth(calendarDate.getMonth() + 1)
+		createCalendarDays();
+		populateCalendar();
 	});
 	$("#menu--main__myshows").click(function(e) {
 		e.preventDefault();
@@ -738,9 +620,11 @@ function setEventListeners() {
 /**
  * Creates days for month calendar
  */
-function createCalendarDays(month, year) {
+function createCalendarDays() {
 	"use strict";
-	var tableBody = $("#calendar__table--tbody"),
+	var month = calendarDate.getMonth(),
+		year = calendarDate.getFullYear(),
+		tableBody = $("#calendar__table--tbody"),
 		weekRow = "",
 		firstDate = new Date(year, month, 1), // First date of month
 		lastDate = new Date(year, month + 1, 0), // Last date of month
@@ -748,6 +632,12 @@ function createCalendarDays(month, year) {
 		weekDayCount = 0;
 	// First clear calendar
 	$(tableBody).html("");
+
+	// Month name
+	var monthNames = [ "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December" ];
+	$("#calendarDate").text(monthNames[month] + " " + calendarDate.getFullYear());
+	// Create days
 	weekRow = "<tr>";
 	// Create previous month days, empty
 	var firstDay = firstDate.getDay();
@@ -765,45 +655,37 @@ function createCalendarDays(month, year) {
 	}
 	// Create rest of the month
 	for (var j = 1; j <= daysInMonth; j++) {
-		weekRow += "<td data-date=\"" + year + "-" + month + "-" + j + "\"><span class=\"calendar__cell__header\">" + j + "</span></td>";
+		weekRow += "<td data-date=\"" + year + "-" + month + "-" + j + "\"><span class=\"calendar__cell__header";
+		// Today highlight
+		var dayDate = new Date(year, month, j);
+		if (year === currentDate.getFullYear() &&
+			month === currentDate.getMonth() &&
+			j === currentDate.getDate()) { 
+			weekRow += " calendar__cell--active";
+		}
+		weekRow += "\">" + j + "</span></td>";
 		weekDayCount++;
 		if (weekDayCount > 6) { // New week
 			weekDayCount = 0;
 			weekRow += "</tr>";
 			tableBody.append(weekRow);
-			if (j + 1 < daysInMonth) {
+			if (j + 1 <= daysInMonth) {
 				weekRow = "<tr>"; // Start new row
 			}
 		}
 	}
-	while (weekDayCount != 1) {
+	// Next month days
+	while (weekDayCount != 0) {
 		weekRow += "<td data-date=\"\"><span class=\"calendar__cell__header\"> </span></td>";
 		weekDayCount++;
 		// Close week and month
 		if (weekDayCount > 6) {
-			weekDayCount = 1;
+			weekDayCount = 0;
 			weekRow += "</tr>";
 			tableBody.append(weekRow);
 		}
 	}
 }
-/**
- * Finds and returns a show by Id
- */
-function getShowById(showId) {
-	for (var i = 0; i < showsArray.length; i++) {
-		if (showsArray[i].data._id === showId) {
-			return showsArray[i];
-		}
-	}
-	return null;
-}
-/**
- * Return date in format YYYY-MM-DD
- */
-Date.prototype.getDateFormated = function() {
-	return this.getFullYear() + "-" + this.getMonth() + "-" + this.getDate();
-};
 /**
  * Fills calendar days with episode events
  */
@@ -818,15 +700,11 @@ function populateCalendar() {
 				// Get day cell and print episode info
 				var tdDay = $("td[data-date=\"" + episodeDate.getDateFormated() + "\"]"),
 					cbId = "cal-episode-" + episode.data._id;
-				$(tdDay).append("<div class=\"calendar__episode\">" + "<input id=" + cbId + " name=\"" + episode.data._id + "\" data-show=" + show.data._id + " type=\"checkbox\" />" + "<label for=" + cbId + ">" + show.data.name + "</label><br>" + "<label for=" + cbId + ">" + episode.data.name + "</label>" + "</div>");
+				$(tdDay).append("<div class=\"calendar__episode\">" + "<input id=" + cbId + " name=\"" + episode.data._id + "\" data-show=" + show.data._id + " type=\"checkbox\" />" + "<label for=" + cbId + ">" + show.data.name + "</label><br>" + "<label for=" + cbId + ">(s" + episode.data.season + "e" + episode.data.number + ") " + episode.data.name + "</label>" + "</div>");
 				// Set event and state for the checkbox
 				var cb = $("input[id='" + cbId + "']");
 				$(cb).click(function(event) {
-					console.log("click!");
-					console.log(this.getAttribute("data-show"));
-					console.log(getShowById(this.getAttribute("data-show")));
 					currentShow = getShowById(this.getAttribute("data-show"));
-					console.log(currentShow);
 					onEpisodeWatchedClick(event);
 				});
 				$(cb).prop("checked", episode.data.watched);
@@ -842,12 +720,8 @@ $(document).ready(function(argument) {
 	// Set up database
 	dbConnector = new DBConnector();
 	//dbConnector.connect("https://showtracker.couchappy.com/showtracker/");
-	dbConnector.connect("showtracker");
-
-	/*dbConnector.getInfo(function(info){
-		console.log(info);
-	});	*/
-
+	dbConnector.connect(DATABASE_URL);
+	dbConnector.getInfo();
 	// Initialize API
 	currentSection = "calendar";
 	// Hide all sections
@@ -855,11 +729,9 @@ $(document).ready(function(argument) {
 	// Set listeners for most buttons
 	setEventListeners();
 	// Import data from Episode Calendar using json file
-	//importUserData(fillAllShows);
+	//importEpisodeCalendar();
 	// Loads data from file an+d checks for updates
-	//loadLocalData();
 	retrieveUserShows();
-	updateData();
 	// Create calendar
 	createCalendarDays(currentDate.getMonth(), currentDate.getFullYear());
 	// Show main section, calendar

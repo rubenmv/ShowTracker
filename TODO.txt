@@ -1,26 +1,28 @@
-http://www.thetvdb.com/
-http://thetvdb.com/wiki/index.php?title=Programmers_API
-Ejemplos:
-http://thetvdb.com/api/GetSeries.php?seriesname=Adventure
-http://thetvdb.com/data/series/152831/all/
-
-- Actualizar la información (mirando con la API) de los shows agregados al inicial el programa. Lo que se podría hacer mejor es simplemente guardar IDs y watched y luego recogerlo todo cada vez desde servidor, asi si cambian las overviews o cualquier otra cosa se cambia automaticamente.
-
 calendar
-	- Paginacion para cambiar de mes
-	- Incluir dias de meses anteriores y posteriores hasta rellenar huecos
+	- Premieres, finales y otros con distinto color.
 
 paginadeshow
-	- BUG
 	- Marcar las temporadas (los tabs) que tiene episodios por ver
 	- Marcar los episodios por ver con otro color
 
 BUGS Y MEJORAS
 - BUG: si el show esta en la coleccion y hay nuevos episodios, casca con episode = null, porque ahora mismo no recoge los nuevos episodes.
-- Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos, intentar arreglar esto.
+- Cuando haces clic en una serie y esperas a que se recoja la info se puede pulsar en otra seccion y luego se van a mostrar las dos.
 - Cuando se muestran todos los shows se puede indicar los que tienen episodios por ver con algun icono o color diferente.
 - No dejar marcar los episodios que aun no han sido emitidos.
+- No contar los episodios especiales o extras.
 - Ocultar episodios que aparecen medio vacios o incorrectos.
 - Ocultar episodios que no son episodios como el de "Sons of anarchy on Conan", etc.
 - Mejorar aspecto general
 - Usar AngularJS o algun otro framework para rellenar las tablas automaticamente
+
+APIs
+- TVDB
+	http://www.thetvdb.com/
+	http://thetvdb.com/wiki/index.php?title=Programmers_API
+	Ejemplos:
+	http://thetvdb.com/api/GetSeries.php?seriesname=Adventure
+	http://thetvdb.com/api/API_KEY/series/81797/all/
+	http://thetvdb.com/api/01C061EC44C068BD/series/81797/all/
+- TMDB
+- TVRage (services.tvrage)
