@@ -1,7 +1,7 @@
-h3 {
-	display: inline-block;
-	margin: 0 1em;
+body {
+	background: #DADADA url('../img/bright_squares.png')  fixed repeat;
 }
+
 button, .button {
 	margin: 0.1em !important;
 	padding: 0.5em !important;
@@ -10,8 +10,27 @@ input {
 	margin: 0 !important;
 	vertical-align: middle !important;
 }
+.main-content {
+	padding: 1em 1em;
+	margin-bottom: 1em;
+}
+.hidden {
+	display: none !important;
+}
+.align-left {
+	text-align: left !important;
+}
+.align-right {
+	text-align: right !important;
+}
 #calendarHeader {
 	text-align: center;
+	margin: 1em 0;
+}
+#calendarHeader * {
+	width: 32%;
+	display: inline-block;
+	vertical-align: middle;
 }
 #showInfo p {
 	font-size: 0.8em;
@@ -19,13 +38,6 @@ input {
 #showInfo .showInfoData, #showInfoBanner {
 	display: inline-block;
 	vertical-align: middle;
-}
-.main-content {
-	padding: 1em 1em;
-	margin-bottom: 1em;
-}
-.hidden {
-	display: none;
 }
 #footer {
 	font-size: 0.9em;
@@ -47,13 +59,19 @@ input {
 	color: #A4C9E8;
 }
 table {
+	border-collapse: collapse;
 	border: none;
+	padding: 0 !important;
 }
 table th {
 	background-color: #333;
 	text-align: center !important;
 	color: #fff !important;
 
+}
+table td {
+	background-color: #FAFAFA;
+	border: 1px solid #ccc;
 }
 table td, table label {
 	font-size: 0.9em !important;
@@ -81,7 +99,7 @@ table td, table label {
 
 .showInfo__season--tab {
 	font-weight: 700;
-	padding: 0.5em !important;
+	padding: 0.5em 1.2em !important;
 }
 
 .calendar__episode {
