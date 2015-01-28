@@ -103,6 +103,7 @@ table td, table label {
 }
 
 .calendar__episode {
+	font-size: 0.8em;
 	background-color: #eee;
 	border: 1px solid #aaa;
 	margin: 0.5em 0.5em;
