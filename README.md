@@ -11,5 +11,5 @@ Clones some of the features of Episode Calendar (http://episodecalendar.com/cale
 - Mark/unmark entire seasons/shows.
 - Unwatched section with pending episodes.
 
-This a node webkit application, data is storaged locally, so it's up to you to keep it synced (just drop the application in a Dropbox folder).
+This a node webkit application, data is stored locally, so it's up to you to keep it synced (just drop the application into a Dropbox folder).
 <br>https://github.com/rogerwang/node-webkit
